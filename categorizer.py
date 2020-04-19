@@ -1,16 +1,21 @@
-from pathlib import Path
-
+import os
 import pandas as pd
 from ktrain import load_predictor, text, get_learner, get_predictor
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
-from loguru import logging
+import tensorflow as tf
+from tensorflow.python.keras.backend import set_session
+from loguru import logger
 
-data_dir = Path('./data')
-categorizer_model_path = data_dir / 'text_categorizer_bert_2e-5_predictor'
+categorizer_model = './data/model/model'
+data_path = './data/BBC News Train.csv'
 random_state = 42
 num_batch = 5
 lr = 2e-5
+
+GRAPH = None
+SESS = None
+PREDICTOR = None
 
 expected_domains = {
     'politics': ['politics'],
@@ -25,10 +30,9 @@ expected_domains = {
 
 
 def train():
-    data_path = data_dir / 'BBC News Train.csv'
     data = pd.read_csv(data_path)
-    X = data['Text'].to_numpy()
-    y = data['Category'].to_numpy()
+    X = data['Text'].values.tolist()
+    y = data['Category'].values.tolist()
     X_train, X_dev, y_train, y_dev = train_test_split(X, y, test_size=0.2, random_state=random_state, shuffle=True)
     X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.1, random_state=random_state,
                                                         shuffle=True)
@@ -50,16 +54,37 @@ def train():
     print(classification_report(y_test, y_pred))
     print(confusion_matrix(y_test, y_pred))
 
-    ## save the model to disk
-    predictor.save("{}_predictor".format(categorizer_model_path))
+    predictor.save(categorizer_model)
+    logger.info("Model has been saved")
+
+    # Saving Model
+    model_json = learner.model.to_json()
+    with open(os.path.join(categorizer_model,"model.json"), "w") as json_file:
+        json_file.write(model_json)
+
+    learner.model.save_weights(os.path.join(categorizer_model,'model.h5'))
+    logger.info("Model weights have been saved")
     return predictor
 
+def load_predictor():
+    global SESS
+    SESS = tf.Session()
+    set_session(SESS)
 
-if categorizer_model_path.exists():
-    logging.debug('{} exists. Loading...'.format(categorizer_model_path))
-    model = load_predictor(categorizer_model_path)
+    # load the model, and pass in the custom metric function
+    global GRAPH
+    GRAPH = tf.get_default_graph()
+
+    global PREDICTOR
+    PREDICTOR = load_predictor(categorizer_model)
+    if hasattr(PREDICTOR.model, '_make_predict_function'):
+        PREDICTOR.model._make_predict_function()
+
+if os.path.exists(categorizer_model):
+    logger.debug('{} exists. Loading...'.format(categorizer_model))
+    model = load_predictor()
 else:
-    logging.debug('{} does not exist. Training...'.format(categorizer_model_path))
+    logger.debug('{} does not exist. Training...'.format(categorizer_model))
     model = train()
 
 
