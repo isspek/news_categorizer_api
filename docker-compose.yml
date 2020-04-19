@@ -1,0 +1,10 @@
+version: "3"
+services:
+  categorizer:
+    build: .
+    image: news_categorizer:latest
+    ports:
+        - 8090:8000
+    volumes:
+        - ./:/app
+    command: [ "uvicorn", '--reload', '--host', '0.0.0.0', 'main:app', '--port', '8000' ]
