@@ -21,17 +21,20 @@ logger.info('Model is loaded.')
 def get_category_from_url(url):
     splitted_url = url.split('/')
     categories = splitted_url[3:-1]
-
+    response = {}
+    response['url'] = url
     for domain, subdomains in expected_domains.items():
         if not categories:
             for category in categories:
                 if any(category == subdomain for subdomain in subdomains):
-                    return domain
+                    response['category'] = domain
+                    return response
         else:
             if any(subdomain in url for subdomain in subdomains):
-                return domain
-
-    return {'url': url, 'category': "unknown"}
+                response['category'] = domain
+                return response
+    response['category'] = "unknown"
+    return response
 
 
 def get_category_from_content(content):
