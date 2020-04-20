@@ -2,13 +2,6 @@ from ktrain import load_predictor
 from loguru import logger
 
 categorizer_model = './model/model'
-random_state = 42
-num_batch = 5
-lr = 2e-5
-
-GRAPH = None
-SESS = None
-PREDICTOR = None
 
 expected_domains = {
     'politics': ['politics'],
@@ -38,7 +31,7 @@ def get_category_from_url(url):
             if any(subdomain in url for subdomain in subdomains):
                 return domain
 
-    return None
+    return {'url': url, 'category': "unknown"}
 
 
 def get_category_from_content(content):
@@ -50,4 +43,7 @@ def get_category_from_content(content):
     :rtype:
     '''
     content = content.lower()
-    return {'content': content, 'category': model.predict(content)}
+    logger.debug("Content {}".format(content))
+    prediction = str(model.predict(content))
+    logger.debug("Predicted category is {}".format(prediction))
+    return {'content': content, 'category': prediction}

@@ -19,7 +19,6 @@ async def get_category_from_url(news_url: NewsUrl):
 
 
 @app.post("/get_category/content/", response_model=NewsContent)
-async def get_category_from_content(content: NewsContent):
-    logger.info('Extracting category: {}'.format(content.content))
-    content.category = categorizer.get_category_from_content(NewsContent.content)
-    return content
+async def get_category_from_content(news_content: NewsContent):
+    logger.info('Extracting category: {}'.format(news_content.content))
+    return categorizer.get_category_from_content(news_content.content)
